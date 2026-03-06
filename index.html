@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Рисование мышкой</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #fc3d86 0%, #d577ec 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+
+        h1 {
+            color: white;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        input[type="color"] {
+            width: 50px;
+            height: 40px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        input[type="range"] {
+            width: 120px;
+            cursor: pointer;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            font-weight: 600;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #667eea;
+            color: white;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background: #764ba2;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        #canvas {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            cursor: crosshair;
+            max-width: 100%;
+            max-height: 70vh;
+        }
+
+        .size-value {
+            font-weight: 600;
+            color: #667eea;
+            min-width: 30px;
+        }
+
+        .gallery-section {
+            width: 100%;
+            max-width: 1000px;
+            margin-top: 40px;
+        }
+
+        .gallery-title {
+            color: white;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .gallery-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            min-height: 180px;
+        }
+
+        .gallery-empty {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+            font-size: 1.1em;
+        }
+
+        .gallery-item {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .gallery-item:hover {
+            transform: scale(1.05);
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .gallery-item-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .gallery-item:hover .gallery-item-overlay {
+            opacity: 1;
+        }
+
+        .gallery-item-overlay button {
+            padding: 6px 12px;
+            font-size: 0.85em;
+            width: 90%;
+        }
+
+        .delete-btn {
+            background: #e74c3c !important;
+        }
+
+        .delete-btn:hover {
+            background: #c0392b !important;
+        }
+
+        .download-item-btn {
+            background: #27ae60 !important;
+        }
+
+        .download-item-btn:hover {
+            background: #229954 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Рисуй мышкой</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="colorPicker">Цвет:</label>
+                <input type="color" id="colorPicker" value="#000000">
+            </div>
+            
+            <div class="control-group">
+                <label for="brushSize">Размер кисти:</label>
+                <input type="range" id="brushSize" min="1" max="50" value="3">
+                <span class="size-value" id="sizeValue">3</span>
+            </div>
+            
+            <button id="clearBtn">Очистить</button>
+            <button id="downloadBtn">Скачать рисунок</button>
+            <button id="saveGalleryBtn">Сохранить в галерею</button>
+        </div>
+
+        <canvas id="canvas"></canvas>
+
+        <div class="gallery-section">
+            <h2 class="gallery-title">📷 Моя галерея</h2>
+            <div class="gallery-container" id="gallery">
+                <div class="gallery-empty">Сохранённых рисунков нет</div>
+            </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const colorPicker = document.getElementById('colorPicker');
+        const brushSize = document.getElementById('brushSize');
+        const sizeValue = document.getElementById('sizeValue');
+        const clearBtn = document.getElementById('clearBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const saveGalleryBtn = document.getElementById('saveGalleryBtn');
+        const galleryContainer = document.getElementById('gallery');
+
+        // Установка размера canvas
+        function resizeCanvas() {
+            canvas.width = Math.min(window.innerWidth - 40, 1000);
+            canvas.height = Math.min(window.innerHeight - 350, 600);
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Переменные для отслеживания рисования
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+
+        // Инициализация галереи
+        function initGallery() {
+            loadGallery();
+        }
+
+        // Загрузка галереи из localStorage
+        function loadGallery() {
+            const drawings = JSON.parse(localStorage.getItem('drawings')) || [];
+            galleryContainer.innerHTML = '';
+
+            if (drawings.length === 0) {
+                galleryContainer.innerHTML = '<div class="gallery-empty">Сохранённых рисунков нет</div>';
+                return;
+            }
+
+            drawings.forEach((drawing, index) => {
+                const item = document.createElement('div');
+                item.className = 'gallery-item';
+                
+                const img = document.createElement('img');
+                img.src = drawing.thumbnail;
+                img.alt = `Рисунок ${index + 1}`;
+                
+                const overlay = document.createElement('div');
+                overlay.className = 'gallery-item-overlay';
+                
+                const downloadBtn = document.createElement('button');
+                downloadBtn.className = 'download-item-btn';
+                downloadBtn.textContent = '⬇️ Скачать';
+                downloadBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    downloadDrawing(drawing.fullImage, `drawing-${index + 1}.png`);
+                };
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.textContent = '🗑️ Удалить';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteDrawing(index);
+                };
+                
+                overlay.appendChild(downloadBtn);
+                overlay.appendChild(deleteBtn);
+                
+                item.appendChild(img);
+                item.appendChild(overlay);
+                
+                item.onclick = () => loadDrawingToCanvas(drawing.fullImage);
+                
+                galleryContainer.appendChild(item);
+            });
+        }
+
+        // Сохранение рисунка в галерею
+        function saveToGallery() {
+            if (canvas.width === 0 || canvas.height === 0) {
+                alert('Сначала нарисуйте что-нибудь!');
+                return;
+            }
+
+            const fullImage = canvas.toDataURL('image/png');
+            
+            // Создание миниатюры
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = 150;
+            tempCanvas.height = 150;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, 150, 150);
+            const thumbnail = tempCanvas.toDataURL('image/png');
+
+            const drawings = JSON.parse(localStorage.getItem('drawings')) || [];
+            drawings.push({
+                fullImage: fullImage,
+                thumbnail: thumbnail,
+                timestamp: new Date().toLocaleString()
+            });
+
+            localStorage.setItem('drawings', JSON.stringify(drawings));
+            loadGallery();
+            alert('Рисунок сохранён в галерею! 🎉');
+        }
+
+        // Загрузка рисунка на canvas
+        function loadDrawingToCanvas(imageData) {
+            const img = new Image();
+            img.onload = function() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            };
+            img.src = imageData;
+        }
+
+        // Удаление рисунка из галереи
+        function deleteDrawing(index) {
+            if (confirm('Вы уверены, что хотите удалить этот рисунок?')) {
+                const drawings = JSON.parse(localStorage.getItem('drawings')) || [];
+                drawings.splice(index, 1);
+                localStorage.setItem('drawings', JSON.stringify(drawings));
+                loadGallery();
+            }
+        }
+
+        // Скачивание рисунка
+        function downloadDrawing(imageData, filename) {
+            const link = document.createElement('a');
+            link.href = imageData;
+            link.download = filename;
+            link.click();
+        }
+
+        // Обновление значения размера кисти
+        brushSize.addEventListener('input', (e) => {
+            sizeValue.textContent = e.target.value;
+        });
+
+        // Очистка канваса
+        clearBtn.addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+
+        // Скачивание рисунка
+        downloadBtn.addEventListener('click', () => {
+            downloadDrawing(canvas.toDataURL('image/png'), 'my-drawing.png');
+        });
+
+        // Сохранение в галерею
+        saveGalleryBtn.addEventListener('click', saveToGallery);
+
+        // Событие начала рисования
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            lastX = e.clientX - rect.left;
+            lastY = e.clientY - rect.top;
+        });
+
+        // Событие рисования
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Рисование линии
+            ctx.strokeStyle = colorPicker.value;
+            ctx.lineWidth = brushSize.value;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+
+            lastX = x;
+            lastY = y;
+        });
+
+        // Событие конца рисования
+        canvas.addEventListener('mouseup', () => {
+            isDrawing = false;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            isDrawing = false;
+        });
+
+        // Поддержка сенсорного экрана
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            lastX = touch.clientX - rect.left;
+            lastY = touch.clientY - rect.top;
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (!isDrawing) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+
+            ctx.strokeStyle = colorPicker.value;
+            ctx.lineWidth = brushSize.value;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+
+            lastX = x;
+            lastY = y;
+        });
+
+        canvas.addEventListener('touchend', () => {
+            isDrawing = false;
+        });
+
+        // Инициализация при загрузке страницы
+        window.addEventListener('load', initGallery);
+    </script>
+</body>
+</html>
